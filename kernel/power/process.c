@@ -173,7 +173,6 @@ int freeze_kernel_threads(void)
 {
 	int error;
 
-
 	pm_nosig_freezing = true;
 	error = try_to_freeze_tasks(false);
 
@@ -198,7 +197,6 @@ void thaw_processes(void)
 #ifndef CONFIG_ANDROID
 	oom_killer_enable();
 #endif
-
 
 	__usermodehelper_set_disable_depth(UMH_FREEZING);
 	thaw_workqueues();

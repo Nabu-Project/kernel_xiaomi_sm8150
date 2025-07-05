@@ -13,6 +13,7 @@ DEVICE=nabu
 CONFIG="${DEVICE}_defconfig"
 NPROC=$(($(nproc) + 1))
 MAKE="-j$NPROC O=out CROSS_COMPILE=aarch64-elf- CROSS_COMPILE_ARM32=arm-eabi- HOSTCC=gcc HOSTCXX=aarch64-elf-g++ CC=aarch64-elf-gcc LD=ld.lld"
+LOG_FILE="$ORIGIN_DIR/build.log"
 
 # Export environment variables
 export KBUILD_BUILD_USER=Const
@@ -22,11 +23,21 @@ export USE_CCACHE=1
 export CCACHE_SLOPPINESS="file_macro,locale,time_macros"
 export CCACHE_NOHASHDIR="true"
 
+# Initialize log file
+echo "=== Build Log - $(date) ===" > "$LOG_FILE"
+
 script_echo() {
     echo "  $1"
+    echo "  $1" >> "$LOG_FILE"
+}
+
+log_command() {
+    echo ">>> $1" >> "$LOG_FILE"
+    eval $1 >> "$LOG_FILE" 2>&1
 }
 
 exit_script() {
+    echo "Build interrupted at $(date)" >> "$LOG_FILE"
     kill -INT $$
 }
 
@@ -40,11 +51,10 @@ add_deps() {
     if [ ! -d "$TOOLCHAIN/gcc-arm64" ]; then
         script_echo "Downloading toolchain..."
         cd "$TOOLCHAIN" || exit_script
-        (
-            git clone https://github.com/KenHV/gcc-arm64.git --single-branch -b master --depth=1 2>&1 | sed 's/^/     /' &
-            git clone https://github.com/KenHV/gcc-arm.git --single-branch -b master --depth=1 2>&1 | sed 's/^/     /'
-        )
-        wait
+        script_echo "Cloning gcc-arm64 repository..."
+        log_command "git clone https://github.com/KenHV/gcc-arm64.git --single-branch -b master --depth=1"
+        script_echo "Cloning gcc-arm repository..."
+        log_command "git clone https://github.com/KenHV/gcc-arm.git --single-branch -b master --depth=1"
         cd "$ORIGIN_DIR"
     fi
 
@@ -73,9 +83,11 @@ build_kernel_image() {
     echo -e "${YELLOW}"
     script_echo "Building CosmicFresh Kernel For $DEVICE"
 
-    eval make "$MAKE" LOCALVERSION="—CosmicFresh" $CONFIG 2>&1 | sed 's/^/     /'
-    echo -e "${YELLOW}"
-    eval make "$MAKE" LOCALVERSION="—CosmicFresh" 2>&1 | sed 's/^/     /'
+    script_echo "Running make config..."
+    log_command "make $MAKE LOCALVERSION=\"—CosmicFresh\" $CONFIG"
+    
+    script_echo "Running make..."
+    log_command "make $MAKE LOCALVERSION=\"—CosmicFresh\""
 
     SUCCESS=$?
     echo -e "${RST}"
@@ -107,20 +119,26 @@ build_flashable_zip() {
     script_echo " "
     script_echo "I: Building kernel image..."
     echo -e "${GRN}"
-    cp "$ORIGIN_DIR"/out/arch/arm64/boot/Image "$ORIGIN_DIR"/out/arch/arm64/boot/dtbo.img CosmicFresh/
-    cp "$ORIGIN_DIR"/out/arch/arm64/boot/dtb.img CosmicFresh/dtb
+    script_echo "Copying kernel image and dtb files..."
+    log_command "cp \"$ORIGIN_DIR\"/out/arch/arm64/boot/Image \"$ORIGIN_DIR\"/out/arch/arm64/boot/dtbo.img CosmicFresh/"
+    log_command "cp \"$ORIGIN_DIR\"/out/arch/arm64/boot/dtb.img CosmicFresh/dtb"
+    
+    script_echo "Creating flashable zip..."
     cd "$ORIGIN_DIR"/CosmicFresh/ || exit_script
-    zip -r9 "CosmicFresh-R$KV-$DEVICE.zip" META-INF version anykernel.sh tools Image dtb dtbo.img
-    rm -rf Image dtb dtbo.img
+    log_command "zip -r9 \"CosmicFresh-R$KV-$DEVICE.zip\" META-INF version anykernel.sh tools Image dtb dtbo.img"
+    
+    script_echo "Cleaning up temporary files..."
+    log_command "rm -rf Image dtb dtbo.img"
     cd "$ORIGIN_DIR"
 }
 
 cleanup() {
-    rm -rf "$ORIGIN_DIR"/out/arch/arm64/boot/Image
-    rm -rf "$ORIGIN_DIR"/out/arch/arm64/boot/dtb*
-    rm -rf "$ORIGIN_DIR"/CosmicFresh/Image
-    rm -rf "$ORIGIN_DIR"/CosmicFresh/*.zip
-    rm -rf "$ORIGIN_DIR"/CosmicFresh/dtb*
+    script_echo "Cleaning up build artifacts..."
+    log_command "rm -rf \"$ORIGIN_DIR\"/out/arch/arm64/boot/Image"
+    log_command "rm -rf \"$ORIGIN_DIR\"/out/arch/arm64/boot/dtb*"
+    log_command "rm -rf \"$ORIGIN_DIR\"/CosmicFresh/Image"
+    log_command "rm -rf \"$ORIGIN_DIR\"/CosmicFresh/*.zip"
+    log_command "rm -rf \"$ORIGIN_DIR\"/CosmicFresh/dtb*"
 }
 
 add_deps

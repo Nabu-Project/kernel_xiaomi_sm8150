@@ -135,6 +135,7 @@ Android.bp
 out/
 
 # CosmicFresh cruft
+build.log
 CosmicFresh/*.zip
 CosmicFresh/dtb*
 CosmicFresh/Image

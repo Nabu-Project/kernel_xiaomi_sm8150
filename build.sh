@@ -16,8 +16,8 @@ MAKE="-j$NPROC O=out CROSS_COMPILE=aarch64-elf- CROSS_COMPILE_ARM32=arm-eabi- HO
 LOG_FILE="$ORIGIN_DIR/build.log"
 
 # Export environment variables
-export KBUILD_BUILD_USER=Const
-export KBUILD_BUILD_HOST=Coccinelle
+export KBUILD_BUILD_USER=RainZ
+export KBUILD_BUILD_HOST=Cosmos
 export ARCH=arm64
 export USE_CCACHE=1
 export CCACHE_SLOPPINESS="file_macro,locale,time_macros"
@@ -81,13 +81,13 @@ build_kernel_image() {
     printf "Write the Kernel version: "
     read KV
     echo -e "${YELLOW}"
-    script_echo "Building CosmicFresh Kernel For $DEVICE"
+    script_echo "Building SnowFlake Kernel For $DEVICE"
 
     script_echo "Running make config..."
-    log_command "make $MAKE LOCALVERSION=\"—CosmicFresh\" $CONFIG"
+    log_command "make $MAKE LOCALVERSION=\"~SnowFlake\" $CONFIG"
     
     script_echo "Running make..."
-    log_command "make $MAKE LOCALVERSION=\"—CosmicFresh\""
+    log_command "make $MAKE LOCALVERSION=\"~SnowFlake\""
 
     SUCCESS=$?
     echo -e "${RST}"
@@ -120,12 +120,12 @@ build_flashable_zip() {
     script_echo "I: Building kernel image..."
     echo -e "${GRN}"
     script_echo "Copying kernel image and dtb files..."
-    log_command "cp \"$ORIGIN_DIR\"/out/arch/arm64/boot/Image \"$ORIGIN_DIR\"/out/arch/arm64/boot/dtbo.img CosmicFresh/"
-    log_command "cp \"$ORIGIN_DIR\"/out/arch/arm64/boot/dtb.img CosmicFresh/dtb"
+    log_command "cp \"$ORIGIN_DIR\"/out/arch/arm64/boot/Image \"$ORIGIN_DIR\"/out/arch/arm64/boot/dtbo.img SnowFlake/"
+    log_command "cp \"$ORIGIN_DIR\"/out/arch/arm64/boot/dtb.img SnowFlake/dtb"
     
     script_echo "Creating flashable zip..."
-    cd "$ORIGIN_DIR"/CosmicFresh/ || exit_script
-    log_command "zip -r9 \"CosmicFresh-R$KV-$DEVICE.zip\" META-INF version anykernel.sh tools Image dtb dtbo.img"
+    cd "$ORIGIN_DIR"/SnowFlake/ || exit_script
+    log_command "zip -r9 \"SnowFlake-R$KV-$DEVICE.zip\" META-INF version anykernel.sh tools Image dtb dtbo.img"
     
     script_echo "Cleaning up temporary files..."
     log_command "rm -rf Image dtb dtbo.img"
@@ -136,9 +136,9 @@ cleanup() {
     script_echo "Cleaning up build artifacts..."
     log_command "rm -rf \"$ORIGIN_DIR\"/out/arch/arm64/boot/Image"
     log_command "rm -rf \"$ORIGIN_DIR\"/out/arch/arm64/boot/dtb*"
-    log_command "rm -rf \"$ORIGIN_DIR\"/CosmicFresh/Image"
-    log_command "rm -rf \"$ORIGIN_DIR\"/CosmicFresh/*.zip"
-    log_command "rm -rf \"$ORIGIN_DIR\"/CosmicFresh/dtb*"
+    log_command "rm -rf \"$ORIGIN_DIR\"/SnowFlake/Image"
+    log_command "rm -rf \"$ORIGIN_DIR\"/SnowFlake/*.zip"
+    log_command "rm -rf \"$ORIGIN_DIR\"/SnowFlake/dtb*"
 }
 
 add_deps

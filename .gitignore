@@ -134,9 +134,9 @@ Android.bp
 # Object directory
 out/
 
-# CosmicFresh cruft
+# SnowFlake cruft
 build.log
-CosmicFresh/*.zip
-CosmicFresh/dtb*
-CosmicFresh/Image
+SnowFlake/*.zip
+SnowFlake/dtb*
+SnowFlake/Image
 build-shit

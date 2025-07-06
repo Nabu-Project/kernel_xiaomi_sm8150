@@ -13,7 +13,22 @@ DEVICE=nabu
 CONFIG="${DEVICE}_defconfig"
 NPROC=$(($(nproc) + 1))
 MAKE="-j$NPROC O=out CROSS_COMPILE=aarch64-elf- CROSS_COMPILE_ARM32=arm-eabi- HOSTCC=gcc HOSTCXX=aarch64-elf-g++ CC=aarch64-elf-gcc LD=ld.lld"
-LOG_FILE="$ORIGIN_DIR/build.log"
+LOG_FILE="$ORIGIN_DIR/build-$(date '+%Y-%m-%d_%H-%M-%S').log"
+DEFAULT_KV="R4.14"
+LOG_PRINT=false
+DO_CLEAN=false
+
+# Parse arguments for log on terminal and or full clean build
+for arg in "$@"; do
+    case $arg in
+        log|l)
+            LOG_PRINT=true
+            ;;
+        clean|c)
+            DO_CLEAN=true
+            ;;
+    esac
+done
 
 # Export environment variables
 export KBUILD_BUILD_USER=RainZ
@@ -33,7 +48,11 @@ script_echo() {
 
 log_command() {
     echo ">>> $1" >> "$LOG_FILE"
-    eval $1 >> "$LOG_FILE" 2>&1
+    if [ "$LOG_PRINT" = true ]; then
+        eval "$1" 2>&1 | tee -a "$LOG_FILE"
+    else
+        eval "$1" >> "$LOG_FILE" 2>&1
+    fi
 }
 
 exit_script() {
@@ -78,8 +97,11 @@ build_kernel_image() {
     cleanup
     script_echo " "
     echo -e "${GRN}"
-    printf "Write the Kernel version: "
+    printf "Write the Kernel version [%s]: " "$DEFAULT_KV"
     read KV
+    if [ -z "$KV" ]; then
+        KV=$DEFAULT_KV
+    fi
     echo -e "${YELLOW}"
     script_echo "Building SnowFlake Kernel For $DEVICE"
 
@@ -139,7 +161,26 @@ cleanup() {
     log_command "rm -rf \"$ORIGIN_DIR\"/SnowFlake/Image"
     log_command "rm -rf \"$ORIGIN_DIR\"/SnowFlake/*.zip"
     log_command "rm -rf \"$ORIGIN_DIR\"/SnowFlake/dtb*"
+
+    if [ "$DO_CLEAN" = true ]; then
+        script_echo "Performing full clean-up..."
+        log_command "make $MAKE clean"
+        log_command "make $MAKE mrproper"
+        log_command "rm -rf \"$ORIGIN_DIR\"/out/*"
+    fi
 }
+
+echo -e "  ██████  ███▄    █  ▒█████   █     █░  █████▒██▓    ▄▄▄       ██ ▄█▀▓█████ "
+echo -e "▒██    ▒  ██ ▀█   █ ▒██▒  ██▒▓█░ █ ░█░▓██   ▒▓██▒   ▒████▄     ██▄█▒ ▓█   ▀ "
+echo -e "░ ▓██▄   ▓██  ▀█ ██▒▒██░  ██▒▒█░ █ ░█ ▒████ ░▒██░   ▒██  ▀█▄  ▓███▄░ ▒███   "
+echo -e "  ▒   ██▒▓██▒  ▐▌██▒▒██   ██░░█░ █ ░█ ░▓█▒  ░▒██░   ░██▄▄▄▄██ ▓██ █▄ ▒▓█  ▄ "
+echo -e "▒██████▒▒▒██░   ▓██░░ ████▓▒░░░██▒██▓ ░▒█░   ░██████▒▓█   ▓██▒▒██▒ █▄░▒████▒"
+echo -e "▒ ▒▓▒ ▒ ░░ ▒░   ▒ ▒ ░ ▒░▒░▒░ ░ ▓░▒ ▒   ▒ ░   ░ ▒░▓  ░▒▒   ▓▒█░▒ ▒▒ ▓▒░░ ▒░ ░"
+echo -e "░ ░▒  ░ ░░ ░░   ░ ▒░  ░ ▒ ▒░   ▒ ░ ░   ░     ░ ░ ▒  ░ ▒   ▒▒ ░░ ░▒ ▒░ ░ ░  ░"
+echo -e "░  ░  ░     ░   ░ ░ ░ ░ ░ ▒    ░   ░   ░ ░     ░ ░    ░   ▒   ░ ░░ ░    ░   "
+echo -e "      ░           ░     ░ ░      ░               ░  ░     ░  ░░  ░      ░  ░"
+echo -e "                                                                            "
+echo -e "${CYAN}                            Kernel Build Script"
 
 add_deps
 build_kernel_image

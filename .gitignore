@@ -135,8 +135,8 @@ Android.bp
 out/
 
 # SnowFlake cruft
-build.log
 SnowFlake/*.zip
 SnowFlake/dtb*
 SnowFlake/Image
 build-shit
+build-*.log

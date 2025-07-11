@@ -1,0 +1,62 @@
+name: SnowFlake kernel Builder
+
+on:
+ # (disabled) Triggering the workflow on push request events
+ # push:
+ #   branches: [ "snowflake-16" ]
+
+  workflow_dispatch:
+
+env:
+  KERNEL_URL: https://github.com/Nabu-Project/kernel_xiaomi_sm8150.git
+  KERNEL_BRANCH: "snowflake-16"
+  KERNEL_PATH: snowflake
+
+jobs:
+  build:
+    if: github.event.repository.owner.id == github.event.sender.id
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout workspace
+      uses: actions/checkout@v4
+
+    - name: Set up git identity
+      run: |
+        git config --global user.name "${GITHUB_ACTOR}"
+        git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
+    - name: Create build folder and clone kernel
+      run: |
+        mkdir snowflake-build && cd snowflake-build
+        git clone --depth=1 --branch "$KERNEL_BRANCH" "$KERNEL_URL" "$KERNEL_PATH"
+    - name: Set Swap Space
+      uses: pierotofy/set-swap-space@master
+      with:
+        swap-size-gb: 12
+
+    - name: Build SnowFlake Kernel
+      run: |
+        cd "$KERNEL_PATH"
+        chmod +x build.sh
+        ./build.sh log clean
+      working-directory: snowflake-build
+
+    - name: Prepare Upload SnowFlake Kernel
+      id: prep
+      run: |
+        zip_file=$(find snowflake/SnowFlake -name "*.zip" | head -n 1)
+        base_name=$(basename "$zip_file" .zip)
+        ts=$(date +"%Y-%m-%d_%H-%M-%S")
+        folder_name="${base_name}_${ts}"
+        mkdir -p "extracted_flashable/$folder_name"
+        unzip "$zip_file" -d "extracted_flashable/$folder_name"
+        echo "zipname=$folder_name" >> "$GITHUB_OUTPUT"
+      working-directory: snowflake-build
+
+    - name: Upload SnowFlake Kernel zip
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.prep.outputs.zipname }}
+        path: snowflake-build/extracted_flashable/${{ steps.prep.outputs.zipname }}
